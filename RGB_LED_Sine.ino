@@ -60,9 +60,7 @@ const byte buttonPin = 2;
 volatile byte buttonState = LOW;  // Tell compiler volatile as interrupt driven
 
 // Fade loop delays
-unsigned int slowFadeDelay = 250;  // time to spend displaying each colour (in slow fade mode) (ms)
-unsigned int fastFadeDelay = 50;  // time to spend displaying each colour (in fast fade mode) (ms)
-unsigned int fadeDelay = slowFadeDelay; //start in slow fade mode
+unsigned int fadeDelay = 250; //start in slow fade mode
 unsigned long fadeDelayLastTime = 0;  // Variable to hold last time fadeDelay was passed (ms)
 unsigned long fadeDelayCurrent;  // Variable to hold current time within fade loop (ms)
 

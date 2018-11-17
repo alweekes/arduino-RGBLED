@@ -60,25 +60,27 @@ const byte buttonPin = 2;
 volatile byte buttonState = LOW;  // Tell compiler volatile as interrupt driven
 
 // Fade loop delays
-unsigned int slowFadeDelay = 100;  // time to spend displaying each colour (in slow fade mode) (ms)
-unsigned int fastFadeDelay = 1;  // time to spend displaying each colour (in fast fade mode) (ms)
+unsigned int slowFadeDelay = 250;  // time to spend displaying each colour (in slow fade mode) (ms)
+unsigned int fastFadeDelay = 50;  // time to spend displaying each colour (in fast fade mode) (ms)
 unsigned int fadeDelay = slowFadeDelay; //start in slow fade mode
 unsigned long fadeDelayLastTime = 0;  // Variable to hold last time fadeDelay was passed (ms)
 unsigned long fadeDelayCurrent;  // Variable to hold current time within fade loop (ms)
 
 // Variables for switch debounce
 unsigned long debounceTimer = 0;  // Current debounce timer value (ms)
-unsigned int debounceWindow = 50;  // Debounce window time (ms)
-unsigned int longPressWindow = 500; // Long press window time (ms)
+unsigned int debounceWindow = 100;  // Debounce window time (ms)
+unsigned int longPressWindow = 1000; // Long press window time (ms)
 unsigned long buttonPressTime = 0; // Current button press time (ms)
 
-// Variable for holding position in RGB fade
+// Position in RGB fade
 int k = 0;
 
 
 
-// Variable to hold state for RGB mode
+// State for RGB mode
 boolean rgb = true;
+
+int colourMode = 0; //Colour mode 0 = disabled 1 = Red, 2 = Green, 3 = Blue
 
 //_______________________________
 void setup()
@@ -98,7 +100,7 @@ void setup()
 //_______________________________
 void loop()
 {
-  if (rgb == true) { //Are we in RGB colour cycle mode?
+  if (rgb == true && colourMode == 0) { //Are we in RGB colour cycle mode?
     fadeDelayCurrent = millis() - fadeDelayLastTime;  // How long in current fade loop?
     if (fadeDelayCurrent <= fadeDelay) {  // If less than fadeDelay, write current RGB values to LED's
 
@@ -106,8 +108,8 @@ void loop()
       analogWrite(redPin, leds[(k + 120) % 360]);   // Set 120deg relative phase for red LED
       analogWrite(greenPin, leds[k % 360]);         // No phase shift for green
       analogWrite(bluePin, leds[(k + 240) % 360]);  // Set 240deg relative phase for blue LED
-
     }
+
     // If not at end of fade cycle
     else if (k < 360) {
       ++k;  // Increment fade index
@@ -120,21 +122,39 @@ void loop()
       fadeDelayLastTime = millis();  // Reset fade delay last event to current time
     }
   }
-  else
-  {
+  
+  else if (rgb != true) {
     // If not in RGB mode (rgb != true), all LED's on (White)
     analogWrite(redPin, 255);
     analogWrite(greenPin, 255);
     analogWrite(bluePin, 255);
   }
+  
+  else {
+    if (colourMode == 1 && rgb == true) {
+      analogWrite(redPin, 255);
+      analogWrite(greenPin, 0);
+      analogWrite(bluePin, 0);
+    }
+    else if (colourMode == 2 && rgb == true) {
+      analogWrite(redPin, 0);
+      analogWrite(greenPin, 255);
+      analogWrite(bluePin, 0);
+    }
+    else if (colourMode == 3 && rgb == true) {
+      analogWrite(redPin, 0);
+      analogWrite(greenPin, 0);
+      analogWrite(bluePin, 255);
+    }
+  }
+  
 }
-
 // Switch input interrupt service routine
 // Reads the state of a switch, with debouncing
 void pin_ISR()
 {
   buttonState = digitalRead(buttonPin);  // Read button state
-  if (buttonState != 1) {  // Is button pressed?
+  if (buttonState != HIGH) {  // Is button pressed?
     debounceTimer = millis();  // Yes - reset debounce timer
   }
   
@@ -144,11 +164,10 @@ void pin_ISR()
     rgb = !rgb;  // Toggle RGB / White mode
   }
 
-  if (buttonPressTime > longPressWindow && fadeDelay != fastFadeDelay) { // Button held, in slow fade?
-    fadeDelay=fastFadeDelay;
+  if (buttonPressTime > longPressWindow && colourMode != 3) { // Long press on button?
+    ++colourMode; // Move to next colour
   }
-  
-  else if (buttonPressTime > longPressWindow && fadeDelay != slowFadeDelay) { // Button held, in rapid flash?
-      fadeDelay=slowFadeDelay;
+  else if (buttonPressTime > longPressWindow && colourMode == 3){
+    colourMode = 0;
   }
 }

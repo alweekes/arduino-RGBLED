@@ -85,7 +85,6 @@ int colourMode = 0; //Colour mode 0 = disabled 1 = Red, 2 = Green, 3 = Blue
 //_______________________________
 void setup()
 {
-  Serial.begin(9600);
   // initialize the LED pins as an outputs:
   pinMode(redPin, OUTPUT);  //Red LED
   pinMode(greenPin, OUTPUT);  // Green LED

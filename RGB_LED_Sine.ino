@@ -57,21 +57,25 @@ const byte bluePin = 6;
 
 // Pin for switch input
 const byte buttonPin = 2;
+volatile byte buttonState = LOW;  // Tell compiler volatile as interrupt driven
 
 // Fade loop delays
-unsigned int fadeDelay = 50;  // time to spend displaying each colour (ms)
+unsigned int slowFadeDelay = 100;  // time to spend displaying each colour (in slow fade mode) (ms)
+unsigned int fastFadeDelay = 1;  // time to spend displaying each colour (in fast fade mode) (ms)
+unsigned int fadeDelay = slowFadeDelay; //start in slow fade mode
 unsigned long fadeDelayLastTime = 0;  // Variable to hold last time fadeDelay was passed (ms)
 unsigned long fadeDelayCurrent;  // Variable to hold current time within fade loop (ms)
 
 // Variables for switch debounce
-unsigned long debounceTimer = 0;  // Variable to hold current debounce timer value
-unsigned int debounceWindow = 100;  // Variable to hold the debounce window time
+unsigned long debounceTimer = 0;  // Current debounce timer value (ms)
+unsigned int debounceWindow = 50;  // Debounce window time (ms)
+unsigned int longPressWindow = 500; // Long press window time (ms)
+unsigned long buttonPressTime = 0; // Current button press time (ms)
 
 // Variable for holding position in RGB fade
 int k = 0;
 
-// Variable for holding button status
-volatile byte buttonState = 1;  // Tell compiler volatile as interrupt driven
+
 
 // Variable to hold state for RGB mode
 boolean rgb = true;
@@ -88,14 +92,13 @@ void setup()
   pinMode(buttonPin, INPUT_PULLUP);
   
   // Attach an interrupt to the Interrupt Service Routine vector
-  attachInterrupt(0, pin_ISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(buttonPin), pin_ISR, CHANGE);
 }
 
 //_______________________________
 void loop()
 {
-  if (rgb == true)  //Are we in RGB colour cycle mode?
-  {
+  if (rgb == true) { //Are we in RGB colour cycle mode?
     fadeDelayCurrent = millis() - fadeDelayLastTime;  // How long in current fade loop?
     if (fadeDelayCurrent <= fadeDelay) {  // If less than fadeDelay, write current RGB values to LED's
 
@@ -134,7 +137,18 @@ void pin_ISR()
   if (buttonState != 1) {  // Is button pressed?
     debounceTimer = millis();  // Yes - reset debounce timer
   }
-  if ((millis() - debounceTimer) > debounceWindow) {  // Longer than debounce time?
-    rgb = !rgb;                                         // Toggle RGB / White mode
+  
+  buttonPressTime = millis() - debounceTimer; //How long button pressed?
+  
+  if (buttonPressTime > debounceWindow && buttonPressTime < longPressWindow) {  // Longer than debounce time, shorter than long press?
+    rgb = !rgb;  // Toggle RGB / White mode
+  }
+
+  if (buttonPressTime > longPressWindow && fadeDelay != fastFadeDelay) { // Button held, in slow fade?
+    fadeDelay=fastFadeDelay;
+  }
+  
+  else if (buttonPressTime > longPressWindow && fadeDelay != slowFadeDelay) { // Button held, in rapid flash?
+      fadeDelay=slowFadeDelay;
   }
 }
